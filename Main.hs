@@ -16,13 +16,13 @@ testCase = "F1 D2 G4"
 -- for. Therefore, I've hardwired one test, but students will need to do further
 -- testing on their own.
 
-  case mapM toLocation $ words testCase of
-    Just target@[_,_,_] ->
-      proj2test target
-    _ -> do
-      putStrLn $ "toLocation Failed to convert one of " ++ testCase
-                 ++ " to a Location"
-      exitFailure
+case mapM toLocation $ words testCase of
+  Just target@[_,_,_] ->
+    proj2test target
+  _ -> do
+    putStrLn $ "toLocation Failed to convert one of " ++ testCase
+                ++ " to a Location"
+    exitFailure
 
 
 -- | Guess the given target, counting and showing the guesses.

@@ -19,6 +19,7 @@ module Proj2 (Location,
 import Data.List
 import Data.Char
 import Data.Array
+import Data.Maybe
 
 
 {-
@@ -69,8 +70,9 @@ toClosestDis targets oneGuess = case minimum ([calculateDistant oneGuess y| y <-
         _ -> (0,0)
 
 
-generateAllChoices :: [Maybe Location]
-generateAllChoices = [toLocation (x : [y]) | x <- "ABCDEFGH", y <- "1234"]
+generateAllChoices :: [Location]
+-- generateAllChoices :: [Maybe Location]
+generateAllChoices = [fromJust (toLocation (x : [y])) | x <- "ABCDEFGH", y <- "1234"]
 
 -- Every set contains a unique empty subset.
 subsets :: (Eq t, Num t) => t -> [a] -> [[a]]
@@ -79,8 +81,9 @@ subsets _ [] = []
 subsets n (x : xs) = map (x :) (subsets (n - 1) xs) ++ subsets n xs
 
 --generate all possible choices of the guess
-choices:: [[Maybe Location]]
+choices:: [[Location]]
 choices = subsets 3 generateAllChoices
+
 
 {-
 Main Functions
@@ -130,7 +133,7 @@ feedback targets guesses = (correct, dist_1, dist_2)
 -- initialGuess
 -- TODO: how to make smart initial guess?
 -- initialGuess :: [Maybe Location, GameState]
-initialGuess :: ([Maybe Location], GameState)
+initialGuess :: ([Location], GameState)
 initialGuess = (choices!! 3, 1)
 
 -- nextGuess
@@ -138,7 +141,7 @@ initialGuess = (choices!! 3, 1)
 -- nextGuess (previouGuess, choices) (feedback previouGuess targets) = (previouGuess, choices) (feedback previouGuess targets) 1
 --     where newGuess =
 
--- nextGuess :: [Maybe Location,GameState] -> (Int,Int,Int) -> [Maybe Location,GameState]
+nextGuess :: ([Location],GameState) -> (Int,Int,Int) -> ([Location],GameState)
 -- nextGuess :: [Int] -> (a, b, c) -> [[Maybe Location]]
 -- nextGuess :: [a1] -> (a2, a3, a4) -> [[Maybe Location]]
-nextGuess (previouGuess,index) [a, b, c]  = (choices !! index, index+1)
+nextGuess (previouGuess,index) feedback_result  = (choices!! index, index+1)

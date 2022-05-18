@@ -29,7 +29,7 @@ type Guesses = [Location]
 type Location = (Char, Char)
 
 -- GameState,containing all the possible choices from which nextGuess can choose
-type GameState = Int
+type GameState = ([Location],Int)
 
 -- the list of all possible Locations
 type Choices = [Location]
@@ -37,7 +37,6 @@ type Choices = [Location]
 {-
 Helper Functions
 -}
-
 
 countCorrect:: [Location] -> [Location] -> Int
 countCorrect targets guesses = countCorrect' (sort targets) (sort guesses)
@@ -69,29 +68,57 @@ toClosestDis targets oneGuess = case minimum ([calculateDistant oneGuess y| y <-
         2 -> (0,1)
         _ -> (0,0)
 
-
 generateAllChoices :: [Location]
 -- generateAllChoices :: [Maybe Location]
 generateAllChoices = [fromJust (toLocation (x : [y])) | x <- "ABCDEFGH", y <- "1234"]
 
 -- Every set contains a unique empty subset.
-subsets :: (Eq t, Num t) => t -> [a] -> [[a]]
-subsets 0 _ = [[]]
-subsets _ [] = []
-subsets n (x : xs) = map (x :) (subsets (n - 1) xs) ++ subsets n xs
-
---generate all possible choices of the guess
-choices:: [[Location]]
-choices = subsets 3 generateAllChoices
+chooseThree :: (Eq t, Num t) => t -> [a] -> [[a]]
+chooseThree 0 _ = [[]]
+chooseThree _ [] = []
+chooseThree n (x : xs) = map (x :) (chooseThree (n - 1) xs) ++ chooseThree n xs
 
 
+--This function will take lists of Locations and the feedback, return a new list of pruned search space
+pruningCorrectNum:: [Location] -> [Location] -> Int -> [Location]
+pruningCorrectNum previouGuess originalSearchSpace correct_num =
+    if correct_num == 0
+        then
+            filter (notElemOf previouGuess) originalSearchSpace
+    else originalSearchSpace
+
+pruning_dist_1:: [Location] -> [Location] -> Int -> [Location]
+pruning_dist_1 previouGuess originalSearchSpace dist_1
+  | dist_1 == 0 = filter (noDistanceOf 1 previouGuess) originalSearchSpace
+--   | dist_1 == 3 = filter (onlyWithinDist 1 previouGuess) originalSearchSpace
+  | otherwise = originalSearchSpace
+
+pruning_dist_2:: [Location] -> [Location] -> Int -> Int -> [Location]
+pruning_dist_2 previouGuess originalSearchSpace dist_1 dist_2
+  | dist_1 == 0 && dist_2 == 0 = filter (noDistanceOf 2 previouGuess) originalSearchSpace
+--   | dist_2 == 3 = filter (onlyWithinDist 2 previouGuess) originalSearchSpace
+  | otherwise = originalSearchSpace
+
+-- ifDistanceHasOne '[('D','4'),('H','1'),('E','4')] ('D','3')
+-- pruning [('D','4),('H','1'),('E','4')] [('D','3'),('D','2')] (1, 0, 1)
+-- pruning [('D','4'),('H','1'),('E','4')] [('D','3'),('D','2'),('E','4')] (0, 0, 1)
+noDistanceOf:: Int -> [Location] -> Location -> Bool
+noDistanceOf dist previouGuess thisSearchSpace=
+    dist `notElem` [calculateDistant thisSearchSpace x| x <-previouGuess]
+
+onlyWithinDist:: Int -> [Location] -> Location -> Bool
+onlyWithinDist dist previouGuess thisSearchSpace=
+    dist `elem` [calculateDistant thisSearchSpace x| x <-previouGuess]
+
+notElemOf:: [Location] -> Location -> Bool
+notElemOf previouGuess thisSearchSpace=
+    thisSearchSpace `notElem` previouGuess
 {-
 Main Functions
 -}
 
 -- toLocation
--- gives Just the Location named by the string,
--- or Nothing if the string is not a valid location name.
+-- gives Just the Location named by the string, or Nothing if the string is not a valid location name.
 toLocation :: String -> Maybe Location
 toLocation str
     | length str /= 2             = Nothing
@@ -105,7 +132,6 @@ toLocation str
 -- fromLocation
 -- gives back the two-character string version of the specified location;
 -- for any location loc, toLocation (fromLocation loc) should return Just loc.
--- For Testing:
     -- feedback [('A','2'),('B','2'),('C','2')] [('C','2'),('D','2'),('E','2')]
 fromLocation :: Location -> String
 fromLocation (x1,x2) = x1 : [x2]
@@ -117,31 +143,36 @@ feedback targets guesses = (correct, dist_1, dist_2)
         correct = countCorrect targets guesses
         (dist_1, dist_2) = count_1and2 targets guesses
 
---test case
--- feedback [('H','1'),('B','2'),('D','3')] [('B','3'),('C','3'), ('H','3')]
--- feedback [('H','1'),('B','2'),('D','3')] [('H','2'),('H','1'), ('B','2')]
--- feedback [('A','1'),('D','2'),('B','3')] [('A','3'),('D','2'), ('H','1')]
--- feedback [('A','1'),('D','2'),('B','3')] [('H','4'),('G','3'), ('H','2')]
--- feedback [('A','1'),('D','2'),('B','3')] [('D','2'),('B','3'), ('A','1')]
--- feedback [('A','2'),('A','1'), ('G','2')] [('H','1'),('G','2'),('H','4')]
--- H1, B2, D3	B1, A2, H3	0, 2, 1
--- H1, B2, D3	B2, H2, H1	2, 1, 0
--- A1, D2, B3	A3, D2, H1	1, 1, 0
--- A1, D2, B3	H4, G3, H2	0, 0, 0
--- A1, D2, B3	D2, B3, A1	3, 0, 0
-
 -- initialGuess
 -- TODO: how to make smart initial guess?
--- initialGuess :: [Maybe Location, GameState]
 initialGuess :: ([Location], GameState)
-initialGuess = (choices!! 3, 1)
+initialGuess = ([('A','1'),('A','2'),('B','1')], (generateAllChoices,1))
+    -- where initialSearchSpace = generateAllChoices
 
--- nextGuess
--- nextGuess :: [Location,GameState] -> (Int,Int,Int) -> [Location,GameState]
--- nextGuess (previouGuess, choices) (feedback previouGuess targets) = (previouGuess, choices) (feedback previouGuess targets) 1
---     where newGuess =
+nextGuess :: ([Location],([Location],Int)) -> (Int,Int,Int) -> ([Location],GameState)
+nextGuess (previouGuess, (originalSearchSpace,index)) (correct_num, dist_1, dist_2) =
+    (chooseThree 3 prunedSearchSpace !! index , (prunedSearchSpace,index+1))
+    where
+        prunedSearchSpace =
+            pruning_dist_2 previouGuess (
+                pruning_dist_1 previouGuess
+                    (pruningCorrectNum previouGuess originalSearchSpace correct_num)
+                dist_1)
+            dist_1 dist_2
 
-nextGuess :: ([Location],GameState) -> (Int,Int,Int) -> ([Location],GameState)
--- nextGuess :: [Int] -> (a, b, c) -> [[Maybe Location]]
--- nextGuess :: [a1] -> (a2, a3, a4) -> [[Maybe Location]]
-nextGuess (previouGuess,index) feedback_result  = (choices!! index, index+1)
+
+-- filter (== (0,0,3)) [feedback x y | x<-(chooseThree 3 generateAllChoices),y<- (chooseThree 3 generateAllChoices) ]
+
+-- chooseThreeAndSort:: [a] -> [[a]]
+-- chooseThreeAndSort possibleSearchSpace= [calculatePossibility guess|guess <- allPossibleGuessCombination]
+--     where   t= length (possibleSearchSpace)
+--             f = [feedback |guess<- possibleSearchSpace]
+
+-- calculatePossibility:: Choices-> Float
+-- calculatePossibility [guess1,guess2,guess3]
+-- --  previouGuess originalSearchSpace dist_1 dist_2
+-- [('A','1'),('A','2'),('B','1')]
+-- -- nextGuess ([('A','1'),('A','2'),('B','1')], (generateAllChoices,1)) (0, 2, 1)
+--
+
+-- [('A','1'),('A','2'),('A','4')]

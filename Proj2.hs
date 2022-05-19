@@ -24,7 +24,7 @@ import Data.Maybe
 {-
 Type Declaritation
 -}
-type Guesses = [Location]
+type Guesses = [[Location]]
 type Location = (Char, Char)
 
 -- GameState,containing all the possible choices from which nextGuess can choose
@@ -139,11 +139,11 @@ feedback targets guesses = (correct, dist_1, dist_2)
 -- initialGuess
 -- TODO: how to make smart initial guess?
 initialGuess :: ([Location], GameState)
-initialGuess = ([('A','1'),('A','2'),('B','1')], (generateAllChoices "ABCDEFGH" "1234", 0))
-    -- where initialSearchSpace = generateAllChoices
+initialGuess = ([('A','1'),('A','2'),('B','1')], (initialSearchSpace, 0))
+    where initialSearchSpace = chooseThree 3 $generateAllChoices "ABCDEFGH" "1234"
 
 nextGuess :: ([Location],GameState) -> (Int,Int,Int) -> ([Location],GameState)
-nextGuess (previouGuess, (originalSearchSpace,index)) (correct_num, dist_1, dist_2) =
+nextGuess (previouGuess, (originalSearguessCandidateschSpace,index)) (correct_num, dist_1, dist_2) =
     if dist_2 == 3 && previouGuess == [('A','1'),('A','2'),('B','1')]
         then (nextGuess,(initialPrunedSearchSpace,index+1))
     else

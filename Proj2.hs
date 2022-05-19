@@ -150,17 +150,16 @@ nextGuess (previouGuess, (originalSearchSpace,index)) (correct_num, dist_1, dist
         (nextGuess, (prunedSearchSpace,index+1))
 
     where
-        prunedSearchSpace =
-            pruning_dist_2 previouGuess (
-                pruning_dist_1 previouGuess (
-                    pruningCorrectNum previouGuess originalSearchSpace correct_num)
-                dist_1)
-            dist_1 dist_2
+        prunedSearchSpace = previouGuess
+        --     pruning_dist_2 previouGuess (
+        --         pruning_dist_1 previouGuess (
+        --             pruningCorrectNum previouGuess originalSearchSpace correct_num)
+        --         dist_1)
+        --     dist_1 dist_2
         initialPrunedSearchSpace = ('C','3') : ('D', '4') : generateAllChoices "EFGH" "1234"
-        guessCandidates = chooseThree 3 prunedSearchSpace
+        guessCandidates = filter (/=previouGuess) $chooseThree 3 prunedSearchSpace
         possibilityListSorted = sort(map (calculatePossibility guessCandidates) guessCandidates)
-        nextGuess = snd(possibilityListSorted !!index)
--- calculatePossibility (chooseThree 3 generateAllChoices) [('C','2'),('D','2'),('E','2')]
+        nextGuess = snd(head possibilityListSorted)
 
 calculatePossibility :: Fractional a1 => [[Location]] -> [Location] -> (a1, [Location])
 calculatePossibility guessCandidates guess= (calculatePossibilityOfOneGuess [feedback target guess| target <- guessCandidates],guess)
@@ -171,5 +170,3 @@ calculatePossibilityOfOneGuess feedBacks = sum([fractionalDivide (length x * len
 fractionalDivide :: (Fractional a1, Integral a2, Integral a3) => a2 -> a3 -> a1
 fractionalDivide a b = fromIntegral a / fromIntegral b
 
-
--- nextGuess ([('A','1'),('A','2'),('B','1')], (generateAllChoices "ABCDEFGH" "1234",0)) (0, 0, 3)

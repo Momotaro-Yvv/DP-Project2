@@ -9,20 +9,21 @@ import System.Exit
 import Proj2 (Location, toLocation, fromLocation, feedback,
               GameState, initialGuess, nextGuess)
 
-testCase = "F1 D2 G4"
+testCase = "C3 E2 F3"
 
 -- | Main code to test Proj2 implementations within Grok. This will be run with
 -- no command line arguments, so there's no way to specify the target to search
 -- for. Therefore, I've hardwired one test, but students will need to do further
 -- testing on their own.
-
-case mapM toLocation $ words testCase of
-  Just target@[_,_,_] ->
-    proj2test target
-  _ -> do
-    putStrLn $ "toLocation Failed to convert one of " ++ testCase
-                ++ " to a Location"
-    exitFailure
+main :: IO ()
+main = do
+  case mapM toLocation $ words testCase of
+    Just target@[_,_,_] ->
+      proj2test target
+    _ -> do
+      putStrLn $ "toLocation Failed to convert one of " ++ testCase
+                 ++ " to a Location"
+      exitFailure
 
 
 -- | Guess the given target, counting and showing the guesses.
@@ -50,4 +51,3 @@ loop target guess other guesses = do
 
 showLocations :: [Location] -> String
 showLocations = unwords . (fromLocation <$>)
-
